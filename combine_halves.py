@@ -1,6 +1,6 @@
 import sys
 from Constants import *
-from temporal_helpers_polish import *
+from temporal_helpers import *
 from keras.models import model_from_json
 from datetime import datetime
 import tensorflow as tf
@@ -10,22 +10,22 @@ from mvpa2.datasets import *
 from mvpa2.base.dataset import save
 
 subject = str(sys.argv[1])
-#subject = "sid001088"
 ROIs = [1001, 1012, 1019, 1020, 1024, 1027, 1030,  1031, 1034, 1035]
-#ROIs = [1001, 1012]
+strategy=1 #the half-and-half strategy
+directory = LOGS_PATH
+log_file = open(directory+"/"+subject+"_combine_log.txt","w")
+half_dict = {1: "runs_1_through_4", 2: "runs_5_through_8"}
 
-PATH = "/isi/music/auditoryimagery2/seanfiles/"
-#PATH = "/Users/sean/Desktop/current_research/fromdiscovery/seanfiles/"
-directory = PATH+"translurm_logs/"
-log_file = open(directory+subject+"_combine_log.txt","w")
 TIMESTEPS = 932
 for roi in ROIs:
     log_file.write("ROI "+str(roi)+":\n")
     log_file.write("Loading halves 1 and 2 for left-handed brain...\n")
-    data_p1 = open(PATH + "/strat0/" + subject + "/" + str(roi) + "/half1_transformed_lh.p", "rb")
-    data_p2 = open(PATH + "/strat0/" + subject + "/" + str(roi) + "/half2_transformed_lh.p", "rb")
-    data_p3 = open(PATH + "/strat0/" + subject + "/" + str(roi) + "/half1_transformed_rh.p", "rb")
-    data_p4 = open(PATH + "/strat0/" + subject + "/" + str(roi) + "/half2_transformed_rh.p", "rb")
+    data_p1 = open(ROI_PATH + subject + "/" + str(roi) + "/"+ "strat"+str(strategy)+"_"+half_dict[1]+"_transformed_lh.p", "rb")
+    data_p2 = open(ROI_PATH + subject + "/" + str(roi) + "/"+ "strat"+str(strategy)+"_"+half_dict[2]+"_transformed_lh.p", "rb")
+    log_file.write("Loading halves 1 and 2 for right-handed brain...\n")
+
+    data_p3 = open(ROI_PATH + subject + "/" + str(roi) + "/"+ "strat"+str(strategy)+"_"+half_dict[1]+"_transformed_rh.p", "rb")
+    data_p4 = open(ROI_PATH + subject + "/" + str(roi) + "/"+ "strat"+str(strategy)+"_"+half_dict[2]+"_transformed_rh.p", "rb")
 
     left1 = pickle.load(data_p1)
     left2 = pickle.load(data_p2)
@@ -144,9 +144,9 @@ for roi in ROIs:
 
 
     left_transformed = open(
-        PATH + "strat0/" + subject + "/" + str(roi) + "/noncircular_transformed_lh.p", "wb")
+        ROI_PATH +"/" + subject + "/" + str(roi) + "/strat1_transformed_lh.p", "wb")
     right_transformed = open(
-        PATH + "strat0/" + subject + "/" + str(roi) + "/noncircular_transformed_rh.p", "wb")
+        ROI_PATH +"/" + subject + "/" + str(roi) + "/strat1_transformed_rh.p", "wb")
 
     pickle.dump(leftds, left_transformed)
     pickle.dump(rightds, right_transformed)
@@ -154,4 +154,4 @@ for roi in ROIs:
     left_transformed.close()
     right_transformed.close()
 
-    log_file.write("Combined datasets saved. Next ROI...\n\n\n\n\n")
+    log_file.write("Combined datasets saved. Next ROI...\n\n\n")

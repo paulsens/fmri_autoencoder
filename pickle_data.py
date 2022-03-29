@@ -10,12 +10,8 @@ import pickle
 import os
 import numpy as np
 
-ROOTDIR='/isi/music/auditoryimagery2'
-DATADIR=opj(ROOTDIR, 'am2/data/fmriprep/fmriprep/')
-OUTDIR=opj(ROOTDIR, 'results_audimg_subj_task')
-
 MRISPACE= 'MNI152NLin2009cAsym' # if using fmriprep_2mm then MRISPACE='MNI152NLin6Asym'
-PARCELLATION='desc-aparcaseg_dseg'# per-subject ROI parcellation in MRIa
+PARCELLATION='desc-aparcaseg_dseg'# per-subject ROI parcellation in MRISPACE
 
 # List of tasks to evaluate
 
@@ -29,7 +25,7 @@ def _make_subj_id_maps():
     accessions = {}
     tonalities = {}
     subjnums = {}
-    with open(opj(ROOTDIR,'subj-id-accession-key.csv')) as csvfile:
+    with open(opj(EXTRAS_PATH,'subj-id-accession-key.csv')) as csvfile:
         reader = csv.reader(csvfile, delimiter=',')
         row = reader.next() # header row
         for row in reader:
@@ -41,7 +37,7 @@ def _make_subj_id_maps():
             accessions[subj_id] = accession_num
             tonalities[subj_id] = key
 
-def _make_legend(LEGEND_FILE=opj(ROOTDIR,"subj_task_run_list.txt")):
+def _make_legend(LEGEND_FILE=opj(EXTRAS_PATH,"subj_task_run_list.txt")):
     """
     Utility function
     Read run_legend to re-order runs by task
@@ -88,7 +84,7 @@ def get_subject_ds(subject, cache=False, cache_dir='ds_cache'):
         data     - subject original data (no mask applied)
     """
     swap_timbres=[2,1,4,3,6,5,8,7]
-    layout = gb.BIDSLayout(DATADIR)
+    layout = gb.BIDSLayout(DATA_PATH)
     ext = 'desc-preproc_bold.nii.gz'
     cache_filename = '%s/%s.ds_cache.nii.gz'%(cache_dir, subject)
     cache_lockname = '%s/%s.ds_cache.lock'%(cache_dir, subject)
@@ -101,10 +97,9 @@ def get_subject_ds(subject, cache=False, cache_dir='ds_cache'):
     if not cache or cache_fail:
         data=[]
         for run in range(1,9):
-#            r=run if legend[accessions[subject]][0]=='HT' else swap_timbres[run-1]
-            r=run
+            r=run if legend[accessions[subject]][0]=='HT' else swap_timbres[run-1]
             f=layout.get(subject=subject, extensions=[ext], run=r)[0]
-            tgts=np.loadtxt(opj(ROOTDIR + '/targets', ACCESSIONS[subject]+'_run-%02d.txt'%r)).astype('int')
+            tgts=np.loadtxt(opj(EXTRAS_PATH + '/targets', accessions[subject]+'_run-%02d.txt'%r)).astype('int')
             ds = P.fmri_dataset(f.filename,
                              targets=tgts,
                              chunks=run)
@@ -122,7 +117,7 @@ def get_subject_ds(subject, cache=False, cache_dir='ds_cache'):
     return data
 
 
-def get_subject_mask(subject, run=1, rois=[1030, 2030], path=DATADIR,
+def get_subject_mask(subject, run=1, rois=[1030, 2030], path=DATA_PATH,
                      space=MRISPACE,
                      parcellation=PARCELLATION):
     """
@@ -175,60 +170,56 @@ def mask_subject_ds(ds, subj, rois, detrend=True, zscore=True):
     return ds_masked
 #
 roi_map={
-1000:    "ctx-lh-unknown",        #190519
+#1000:    "ctx-lh-unknown",        #190519
 1001:    "ctx-lh-bankssts",       #196428
-1002:    "ctx-lh-caudalanteriorcingulate", #7d64a0
-1003:    "ctx-lh-caudalmiddlefrontal",    #641900
+#1002:    "ctx-lh-caudalanteriorcingulate", #7d64a0
+#1003:    "ctx-lh-caudalmiddlefrontal",    #641900
 #1004:    "ctx-lh-corpuscallosum", #784632
-1005:    "ctx-lh-cuneus", #dc1464
-1006:    "ctx-lh-entorhinal",     #dc140a
-1007:   "ctx-lh-fusiform",       #b4dc8c
-1008:    "ctx-lh-inferiorparietal",       #dc3cdc
-1009:    "ctx-lh-inferiortemporal",       #b42878
-1010:    "ctx-lh-isthmuscingulate",       #8c148c
-1011:    "ctx-lh-lateraloccipital",       #141e8c
+#1005:    "ctx-lh-cuneus", #dc1464
+#1006:    "ctx-lh-entorhinal",     #dc140a
+#1007:   "ctx-lh-fusiform",       #b4dc8c
+#1008:    "ctx-lh-inferiorparietal",       #dc3cdc
+#1009:    "ctx-lh-inferiortemporal",       #b42878
+#1010:    "ctx-lh-isthmuscingulate",       #8c148c
+#1011:    "ctx-lh-lateraloccipital",       #141e8c
 1012:    "ctx-lh-lateralorbitofrontal",   #234b32
-1013:    "ctx-lh-lingual",        #e18c8c
-1014:    "ctx-lh-medialorbitofrontal",    #c8234b
-1015:    "ctx-lh-middletemporal", #a06432
-1016:    "ctx-lh-parahippocampal",        #14dc3c
-1017:    "ctx-lh-paracentral",    #3cdc3c
-1018:    "ctx-lh-parsopercularis",        #dcb48c
+#1013:    "ctx-lh-lingual",        #e18c8c
+#1014:    "ctx-lh-medialorbitofrontal",    #c8234b
+#1015:    "ctx-lh-middletemporal", #a06432
+#1016:    "ctx-lh-parahippocampal",        #14dc3c
+#1017:    "ctx-lh-paracentral",    #3cdc3c
+#1018:    "ctx-lh-parsopercularis",        #dcb48c
 1019:    "ctx-lh-parsorbitalis",  #146432
 1020:    "ctx-lh-parstriangularis",       #dc3c14
-1021:    "ctx-lh-pericalcarine",  #78643c
-1022:    "ctx-lh-postcentral",    #dc1414
-1023:    "ctx-lh-posteriorcingulate",     #dcb4dc
+#1021:    "ctx-lh-pericalcarine",  #78643c
+#1022:    "ctx-lh-postcentral",    #dc1414
+#1023:    "ctx-lh-posteriorcingulate",     #dcb4dc
 1024:    "ctx-lh-precentral",     #3c14dc
-1025:    "ctx-lh-precuneus",      #a08cb4
-1026:    "ctx-lh-rostralanteriorcingulate",       #50148c
+#1025:    "ctx-lh-precuneus",      #a08cb4
+#1026:    "ctx-lh-rostralanteriorcingulate",       #50148c
 1027:    "ctx-lh-rostralmiddlefrontal",   #4b327d
-1028:    "ctx-lh-superiorfrontal",        #14dca0
-1029:    "ctx-lh-superiorparietal",       #14b48c
+#1028:    "ctx-lh-superiorfrontal",        #14dca0
+#1029:    "ctx-lh-superiorparietal",       #14b48c
 1030:    "ctx-lh-superiortemporal",       #8cdcdc
 1031:    "ctx-lh-supramarginal",  #50a014
-1032:    "ctx-lh-frontalpole",    #640064
-1033:    "ctx-lh-temporalpole",   #464646
+#1032:    "ctx-lh-frontalpole",    #640064
+#1033:    "ctx-lh-temporalpole",   #464646
 1034:    "ctx-lh-transversetemporal",     #9696c8
 1035:    "ctx-lh-insula" #ffc020
 }
 
-#_make_subj_id_maps()
+_make_subj_id_maps()
 
-#_make_legend()
+_make_legend()
 
 #_gen_RH_cortical_map()
 
-tasks=['pch-height','pch-class','pch-hilo','timbre','pch-helix-stim-enc']
-ROI_dict = {tasks[0]:1032, tasks[1]:1001, tasks[2]:1034, tasks[3]:1013, tasks[4]:1034}
-
-icmlsubjects= ['sid001088']
-def pickle_data_new():
+def pickle_data():
     subject_count = 0
     ds_count = 0
 
     ### SUBJECTS is set in Constants.py ###
-    for subject in icmlsubjects:
+    for subject in SUBJECTS:
         if str(subject) in RED_FLAGGED:
             print("Subject "+str(subject)+" is red-flagged, ignoring.\n\n")
 
@@ -243,16 +234,27 @@ def pickle_data_new():
             print("about to print ds object")
             print(ds)
 
+            for ROI in roi_map.keys():
+                rois = [ROI, ROI + 1000]  # left and right sides of ROI
+                print("rois is "+str(rois))
+                ds_masked = mask_subject_ds(ds, subject, rois, False, False)
+                print("masked dataset is "+str(ds_masked)+"\n\n")
+                directory = ROI_PATH +"/" + str(subject)+"/"
+                if not (os.path.isdir(directory)):
+                    os.mkdir(directory)
 
+                directory = directory + str(ROI)+"/"
+                if not (os.path.isdir(directory)):
+                    os.mkdir(directory)
 
-            pickle.dump(ds, open("/isi/music/auditoryimagery2/seanfiles/icml/sid001088/full_brain_ds.p", "wb"))
-            ds_count += 1
-            #
-            # pickle.dump(samples, open(directory+"/samples.p", "wb"))
-            # pickle.dump(orig_data,open(directory+"/3d_samples.p","wb"))
-            # pickle.dump(voxels, open(directory+"/voxel_indices.p","wb"))
-            # pickle.dump(chunks, open(directory+"/chunks.p", "wb"))
-            # pickle.dump(targets, open(directory+"/targets.p", "wb"))
+                pickle.dump(ds_masked, open(directory + "/raw_ds.p", "wb"))
+                ds_count += 1
+                #
+                # pickle.dump(samples, open(directory+"/samples.p", "wb"))
+                # pickle.dump(orig_data,open(directory+"/3d_samples.p","wb"))
+                # pickle.dump(voxels, open(directory+"/voxel_indices.p","wb"))
+                # pickle.dump(chunks, open(directory+"/chunks.p", "wb"))
+                # pickle.dump(targets, open(directory+"/targets.p", "wb"))
 
     print("Loaded " + str(subject_count) + " subjects.\n\n")
 

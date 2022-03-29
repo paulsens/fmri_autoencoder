@@ -1,6 +1,6 @@
 ### General imports ###
 from random import randint
-from Constants import ZERO_THRESHOLD_PRIMARY, ZERO_THRESHOLD_SECONDARY, P_EPOCHS, S_EPOCHS, P_KERNEL_REGULARIZER, P_ACTIVITY_REGULARIZER, S_ACTIVITY_REGULARIZER, S_BATCH_SIZE, S_KERNEL_REGULARIZER, P_BATCH_SIZE, ACCESSIONS, PATH
+from Constants import ZERO_THRESHOLD_PRIMARY, P_EPOCHS, P_KERNEL_REGULARIZER, P_ACTIVITY_REGULARIZER, P_BATCH_SIZE, ACCESSIONS, EXTRAS_PATH, DATA_PATH, ROI_PATH, LOGS_PATH, CODE_PATH
 #from stratDS import StratDS
 import numpy
 import pickle
@@ -11,7 +11,7 @@ import keras
 from keras.layers import Input, Dense, Activation, Conv2D, MaxPooling2D
 from keras import regularizers
 from keras import Model
-from pickle_data_new import *
+from pickle_data import *
 
 TEMPORAL_WINDOW2 = "NULL"
 NUM_SECONDARY_FILTERS = "NULL"
@@ -161,7 +161,7 @@ def primary_convolution(ae, arg_dict, log_file, layer, spatial_info_l, spatial_i
         left_count = -1
         TIMESTEPS = arg_dict["TIMESTEPS"]
         half = arg_dict["half"]
-        directory = PATH+"seanfiles/"+str(subject)+"/"+str(ROI)
+        #directory = PATH+"seanfiles/"+str(subject)+"/"+str(ROI)
         if half == 0:
             start_t=0
             end_t = TIMESTEPS
@@ -436,32 +436,21 @@ def pooling_3d(cube, pooling_cube):
 
 
 
-#layer is either 'primary' or 'secondary'
 def save_block(arg_dict, left, right, layer, log_file, iteration):
     subject = arg_dict["subject"]
     side = arg_dict["ROI"][-1]
     ROI = arg_dict["ROI"][:-1]
-    directory = "/isi/music/auditoryimagery2/seanfiles/strat"+str(arg_dict["strategy"])\
-                +"/"+str(subject)+"/"+str(ROI)+"/"
+    directory = ROI_PATH +"/"+str(subject)+"/"+str(ROI)+"/"
 
-    # ENABLE FOR SPLIT/TWO LAYER FUNCTIONALITY
-    # log_file.write("Saving left and right sides after" +str(layer)+" block...\n")
-    # left_p = open(directory+"/left_"+layer+str(iteration)+".p", "wb")
-    # right_p = open(directory+"/right_"+layer+str(iteration)+".p", "wb")
-    #
-    # pickle.dump(left, left_p)
-    # pickle.dump(right, right_p)
-    #
-    # log_file.write("Saving left and right sides after"+str(layer) +" block for python2...\n")
-    # left_p2 = open(directory+"/left_"+layer+str(iteration)+"_py2.p", "wb")
-    # right_p2 = open(directory+"/right_"+layer+str(iteration)+"_py2.p", "wb")
-    #
-    # pickle.dump(left, left_p2, protocol=2)
-    # pickle.dump(right, right_p2, protocol=2)
 
     log_file.write("Saving flat pooled values, these should be concatenated and then made into an mvpa dataset object\n")
-    flat_p = open(directory+"half"+str(arg_dict["half"])+"_primary_pooled_"+str(side)+".p","wb")
 
+    half = arg_dict["half"]
+    if half!=0:
+        flat_p = open(directory+"strat"+arg_dict["strategy"]+"_"+(arg_dict["half_dict"])[half]+"_primary_pooled_"+str(side)+".p","wb")
+
+    else:
+        flat_p = open(directory+"strat"+arg_dict["strategy"]+"_primary_pooled_"+str(side)+".p","wb")
     pickle.dump(left, flat_p)
 
 
@@ -1302,7 +1291,7 @@ def make_StratDS(arg_dict, log_file):
     ds = load_subject(subject, ROI, log_file)
     samples = ds.samples
 
-    if strat == "0":
+    if strat == "1":
         strat_samples = samples[:]
         strat_steps = 932
         # arg_dict["strat_steps"]=strat_steps #flat number of timesteps
@@ -1317,26 +1306,20 @@ def make_StratDS(arg_dict, log_file):
         labelled_steps = None
 
     # Remove all labelled samples
-    elif strat == "1":
-        if(arg_dict["half"]==0):
-            start_run=1
-            end_run=8
-        elif(arg_dict["half"]==1):
-            start_run=1
-            end_run=4
-        elif(arg_dict["half"]==2):
-            start_run=5
-            end_run=8
+    elif strat == "0":
+
+        start_run=1
+        end_run=8
         new_steps = []
         step = 0
         strat_samples = []
-        labelled_steps = [] #tells us which steps we can't overlap with when creating "winow samples" during AE training.
+        labelled_steps = [] #tells us which steps we can't overlap with when creating "window samples" during AE training.
 
         accession = ACCESSIONS[arg_dict["subject"]]
 
         for run in range(start_run, end_run):
             # access Accession file
-            filepath = "/isi/music/auditoryimagery2/targets/" + str(accession) + "_run-0" + str(run) + ".txt"
+            filepath = EXTRAS_PATH+"/targets/" + str(accession) + "_run-0" + str(run) + ".txt"
             with open(filepath) as fp:
                 line = fp.readline()
                 while line:
@@ -1358,209 +1341,6 @@ def make_StratDS(arg_dict, log_file):
 
         if(strat_steps!=len(new_steps)):
             log_file.write("step length mismatch for strat "+str(strat)+": strat steps is "+str(strat_steps)+" and new steps has length "+str(len(new_steps))+"\n")
-
-        log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat steps is " + str(strat_steps))
-        log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat samples is " + str(strat_samples))
-
-
-    # Create dataset filtered by second half, i.e hold out first half during training
-
-    elif strat == "2":
-
-        step = 0
-        new_steps = []
-        strat_samples = []
-        labelled_steps = [] #the AE cannot possibly overlap its window samples with test data with this strategy, so it remains empty
-
-        accession = ACCESSIONS[arg_dict["subject"]]
-
-        # count through the first four runs
-
-        for run in range(1, 5):
-
-            # access Accession file
-
-            filepath = "/isi/music/auditoryimagery2/targets/" + str(accession) + "_run-0" + str(run) + ".txt"
-
-            with open(filepath) as fp:
-
-                line = fp.readline()
-
-                while line:
-                    step += 1
-
-                    line = fp.readline()
-
-        for t in range(step, 1864):
-            new_steps.append(step)
-            strat_samples.append(samples[t])
-
-        strat_samples=np.array(strat_samples)
-        strat_steps = len(strat_samples)
-
-        if (strat_steps != len(new_steps)):
-            log_file.write("step length mismatch for strat " + str(strat) + ": strat steps is " + str(
-                strat_steps) + " and new steps has length " + str(len(new_steps)) + "\n")
-
-        log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat steps is " + str(strat_steps))
-        log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat samples is " + str(strat_samples))
-
-
-    # Create dataset filtered by first half, i.e hold out second half during training
-
-    elif strat == "3":
-
-        step = 0
-        new_steps = []
-        strat_samples = []
-        labelled_steps = [] #the AE cannot possibly overlap its window samples with test data with this strategy, so it remains empty
-        accession = ACCESSIONS[arg_dict["subject"]]
-
-        # count through the first four runs
-        for run in range(1, 5):
-            # access Accession file
-            filepath = "/isi/music/auditoryimagery2/targets/" + str(accession) + "_run-0" + str(run) + ".txt"
-
-            with open(filepath) as fp:
-                line = fp.readline()
-
-                while line:
-                    step += 1
-                    line = fp.readline()
-
-        # step is now the timestep after the first four runs
-        for t in range(0, step):
-            strat_samples.append(samples[t])
-            new_steps.append(t)
-
-        strat_steps = len(strat_samples)
-        strat_samples=np.array(strat_samples)
-
-        if (strat_steps != len(new_steps)):
-            log_file.write("step length mismatch for strat " + str(strat) + ": strat steps is " + str(
-                strat_steps) + " and new steps has length " + str(len(new_steps)) + "\n")
-
-        log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat steps is " + str(strat_steps))
-        log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat samples is " + str(strat_samples))
-
-
-    # Create dataset filtered by all unlabeled data, and second half of labeled data
-
-    # i.e hold out first half of labeled data
-
-    elif strat == "4":
-
-        step = 0
-        new_steps = []
-        strat_samples = []
-        labelled_steps = [] #in this case, the labelled steps in the first half, we dont want "window samples" to overlap with these
-        accession = ACCESSIONS[arg_dict["subject"]]
-
-
-
-        for run in range(1, 5):
-
-            # access Accession file
-            filepath = "/isi/music/auditoryimagery2/targets/" + str(accession) + "_run-0" + str(run) + ".txt"
-
-            with open(filepath) as fp:
-
-                line = fp.readline()
-                while line:
-
-                    if int(line.strip()) in label_range:
-                        log_file.write("labelled timestep at t=" + str(step) + ", the label was " + str(line.strip()) + "\n")
-                        labelled_steps.append(step)
-
-                    else:
-                        new_steps.append(step)
-
-                    step += 1
-                    line = fp.readline()
-
-        # add the samples at the unlabeled timesteps in the first half
-        for i in range(0, len(new_steps)):
-            t = new_steps[i]
-
-            strat_samples.append(samples[t])
-
-        # add the samples from all timesteps in the second half
-
-        for i in range(step, 1864):
-            strat_samples.append(samples[i])
-            new_steps.append(i)
-
-        strat_steps = len(strat_samples)
-        strat_samples=np.array(strat_samples)
-
-        if (strat_steps != len(new_steps)):
-            log_file.write("step length mismatch for strat " + str(strat) + ": strat steps is " + str(
-                strat_steps) + " and new steps has length " + str(len(new_steps)) + "\n")
-
-        log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat steps is " + str(strat_steps))
-        log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat samples is " + str(strat_samples))
-
-
-    # Create dataset filtered by all unlabeled data, and first half of labeled data
-
-    # i.e hold out second half of labeled data
-
-    elif strat == "5":
-
-        step = 0
-        new_steps = []
-        strat_samples = []
-        labelled_steps = []
-
-        accession = ACCESSIONS[arg_dict["subject"]]
-
-        # add all the samples in the first half, as well as count them with "step"
-        for run in range(1, 5):
-
-            # access Accession file
-            filepath = "/isi/music/auditoryimagery2/targets/" + str(accession) + "_run-0" + str(run) + ".txt"
-
-            with open(filepath) as fp:
-
-                line = fp.readline()
-                while line:
-                    new_steps.append(step)
-
-                    step += 1
-
-        # remove all labelled samples in the second half
-
-        for run in range(5, 9):
-
-            # access Accession file
-            filepath = "/isi/music/auditoryimagery2/targets/" + str(accession) + "_run-0" + str(run) + ".txt"
-
-            with open(filepath) as fp:
-                line = fp.readline()
-
-                while line:
-                    if int(line.strip()) in label_range:
-                        log_file.write(
-                            "labelled timestep at t=" + str(step) + ", the label was " + str(line.strip()) + "\n")
-                        labelled_steps.append(step)
-
-                    else:
-                        new_steps.append(step)
-
-                    step += 1
-
-        # new_steps contains both halves, so add them all
-        for i in range(0, len(new_steps)):
-            t = new_steps[i]
-
-            strat_samples.append(samples[t])
-
-        strat_steps = len(strat_samples)
-        strat_samples = np.array(strat_samples)
-
-        if (strat_steps != len(new_steps)):
-            log_file.write("step length mismatch for strat " + str(strat) + ": strat steps is " + str(
-                strat_steps) + " and new steps has length " + str(len(new_steps)) + "\n")
 
         log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat steps is " + str(strat_steps))
         log_file.write("for strategy " + str(arg_dict["strategy"]) + ", strat samples is " + str(strat_samples))

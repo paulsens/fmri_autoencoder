@@ -13,7 +13,7 @@ Pipeline for transforming fMRI data as detailed in ___(2022)
   
 - **1.3**: Set the ROI_PATH, CODE_PATH, DATA_PATH, and EXTRAS_PATH variables in Constants.py
   
-- **1.4**: Activate your python environment and run prepare_data.py. This will extract the data from .nii files and create corresponding mvpa2 "dataset" objects for each of the ten Regions of Interest. These objects are then saved on disk with pickle and are used throughout the rest of the pipeline. 
+- **1.4**: Activate your python environment and run prepare_data.py. This will extract the data from .nii files and create corresponding mvpa2 "dataset" objects for each of the ten (technically twenty, as left and right are handled separately) Regions of Interest. These objects are then saved on disk with pickle and are used throughout the rest of the pipeline. 
   
 **Step 2**: Transformed Datasets
   

@@ -29,10 +29,7 @@ import pprint
 
 # data = 3mmx3mmx3mm
 
-ROOTDIR='/isi/music/auditoryimagery2'
-DATADIR=opj(ROOTDIR, 'am2/data/fmriprep/fmriprep/')
-RESULTDIR=opj(ROOTDIR, 'results_audimg_subj_task_mkc_del0_dur1_n1000_autoenc')
-AUTOENCDIR='/isi/music/auditoryimagery2/seanfiles'
+from Constants import *
 
 MRISPACE= 'MNI152NLin2009cAsym' # if using fmriprep_2mm then MRISPACE='MNI152NLin6Asym' 
 PARCELLATION='desc-aparcaseg_dseg'# per-subject ROI parcellation in MRISPACE
@@ -220,7 +217,7 @@ def get_subject_ds(subject, cache=False, cache_dir='ds_cache'):
         data     - subject original data (no mask applied)
     """
     swap_timbres=[2,1,4,3,6,5,8,7]
-    layout = gb.BIDSLayout(DATADIR)
+    layout = gb.BIDSLayout(DATA_PATH)
     ext = 'desc-preproc_bold.nii.gz'
     cache_filename = '%s/%s.ds_cache.nii.gz'%(cache_dir, subject)
     cache_lockname = '%s/%s.ds_cache.lock'%(cache_dir, subject)    
@@ -506,12 +503,12 @@ def do_subj_classification(ds_masked, subject, task='timbre', cond='a', clf=None
     ests = np.array(ests)
     return {'subj':subject, 'res':[tgts, preds], 'est': ests, 'task':task, 'cond':cond, 'ut':ds.UT, 'null_model':null_model}
 
-def get_subject_mask(subject, run=1, rois=[1030,2030], path=DATADIR, 
+def get_subject_mask(subject, run=1, rois=[1030,2030], path=EXTRAS_PATH,
                      space=MRISPACE,
                      parcellation=PARCELLATION):
     """
     Get subject mask by run and ROI key to apply to a dataset
-    (rois are in DATADIR/PARCELLATION.tsv)
+
 
     inputs:
         subject  - sid00[0-9]{4}

@@ -1,5 +1,5 @@
 # fmri_autoencoder
-Pipeline for transforming fMRI data as detailed in ___(2022)
+Pipeline for transforming fMRI data as detailed in May, Halpern, Paulsen, and Casey(2022)
 
 **Step 0**: Python environment
   
@@ -7,7 +7,7 @@ Pipeline for transforming fMRI data as detailed in ___(2022)
 
 **Step 1**: ROI Slicing
   
-- **1.1**: Email ____ to request access to our brainlife.io repository of fMRI data and download it.
+- **1.1**: Email Michael.A.Casey@dartmouth.edu to request access to our brainlife.io repository of fMRI data and then download it.
   
 - **1.2**: Download the "Extras" folder located at ______ and extract the contents.
   
